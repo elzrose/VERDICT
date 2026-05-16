@@ -1,0 +1,254 @@
+/* =============================================
+   VERDICT GLITCH TEXT
+   ============================================= */
+
+.verdict-glitch-wrap {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* Shift slightly to center the hole of the 'D' */
+  transform-origin: 51.5% 50%;
+  transform: translate(-51.5%, -50%);
+  
+  /* Zoom transition */
+  transition: transform 1.5s cubic-bezier(0.7, 0, 0.3, 1), filter 1.5s ease;
+
+  /* Text base */
+  font-family: 'Arial Black', 'Impact', sans-serif;
+  font-size: clamp(3rem, 10vw, 7rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  line-height: 1;
+  color: transparent; /* Fallback to transparent to let children show */
+}
+
+/* Zoom state: scale enormously into the D's hole */
+.verdict-glitch-wrap.zooming {
+  transform: translate(-51.5%, -50%) scale(250);
+  /* Optional: blur slightly while zooming */
+  filter: blur(1px);
+}
+
+/* Show during glitch */
+.verdict-glitch-wrap.glitching {
+  animation: glitch-container 0.36s steps(1) infinite;
+}
+
+/* The main white text */
+.verdict-main {
+  display: block;
+  position: relative;
+  color: #ffffff;
+  text-shadow:
+    0 0 8px rgba(252, 0, 80, 0.9),
+    0 0 20px rgba(252, 0, 80, 0.6);
+  z-index: 2;
+}
+
+/* Red channel offset (chromatic aberration — left) */
+.verdict-r {
+  display: block;
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  color: rgb(252, 0, 80);
+  mix-blend-mode: screen;
+  z-index: 1;
+  opacity: 0;
+}
+
+/* Blue/Cyan channel offset (chromatic aberration — right) */
+.verdict-b {
+  display: block;
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  color: rgb(0, 255, 200);
+  mix-blend-mode: screen;
+  z-index: 1;
+  opacity: 0;
+}
+
+/* Scanlines overlay */
+.verdict-scanlines {
+  display: block;
+  position: absolute;
+  inset: -4px;
+  z-index: 3;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.35) 2px,
+    rgba(0, 0, 0, 0.35) 4px
+  );
+  opacity: 0;
+}
+
+/* ---- Active glitch animations ---- */
+
+/* Container random vertical jitter */
+@keyframes glitch-container {
+  0%   { transform: translate(calc(-51.5% + 0px),  calc(-50% + 0px)); }
+  20%  { transform: translate(calc(-51.5% - 3px),  calc(-50% + 1px)); }
+  40%  { transform: translate(calc(-51.5% + 3px),  calc(-50% - 2px)); }
+  60%  { transform: translate(calc(-51.5% - 2px),  calc(-50% + 3px)); }
+  80%  { transform: translate(calc(-51.5% + 1px),  calc(-50% - 1px)); }
+  100% { transform: translate(calc(-51.5% + 0px),  calc(-50% + 0px)); }
+}
+
+.verdict-glitch-wrap.glitching .verdict-r {
+  opacity: 0.9;
+  animation: glitch-red 0.28s steps(1) infinite;
+}
+
+.verdict-glitch-wrap.glitching .verdict-b {
+  opacity: 0.9;
+  animation: glitch-blue 0.28s steps(1) infinite;
+}
+
+.verdict-glitch-wrap.glitching .verdict-scanlines {
+  opacity: 1;
+  animation: scanline-flicker 0.16s steps(1) infinite;
+}
+
+/* Red channel jitter: offset and clip slices */
+@keyframes glitch-red {
+  0%   { transform: translate(-4px, 0);    clip-path: inset(0 0 85% 0); }
+  15%  { transform: translate( 4px, -2px); clip-path: inset(30% 0 50% 0); }
+  30%  { transform: translate(-3px, 2px);  clip-path: inset(55% 0 20% 0); }
+  50%  { transform: translate( 5px, 0);    clip-path: inset(10% 0 70% 0); }
+  70%  { transform: translate(-5px, -1px); clip-path: inset(75% 0 10% 0); }
+  85%  { transform: translate( 2px, 3px);  clip-path: inset(40% 0 40% 0); }
+  100% { transform: translate(-4px, 0);    clip-path: inset(0 0 85% 0); }
+}
+
+/* Cyan/blue channel jitter: opposite direction, different slices */
+@keyframes glitch-blue {
+  0%   { transform: translate( 4px, 0);    clip-path: inset(60% 0 25% 0); }
+  15%  { transform: translate(-4px, 2px);  clip-path: inset(10% 0 60% 0); }
+  30%  { transform: translate( 5px, -2px); clip-path: inset(80% 0 5%  0); }
+  50%  { transform: translate(-3px, 0);    clip-path: inset(35% 0 45% 0); }
+  70%  { transform: translate( 3px, 2px);  clip-path: inset(5%  0 80% 0); }
+  85%  { transform: translate(-5px, -3px); clip-path: inset(50% 0 30% 0); }
+  100% { transform: translate( 4px, 0);    clip-path: inset(60% 0 25% 0); }
+}
+
+/* Main text horizontal slice jitter */
+.verdict-glitch-wrap.glitching .verdict-main {
+  animation: glitch-main 0.4s steps(1) infinite;
+}
+
+@keyframes glitch-main {
+  0%   { clip-path: none; transform: translateX(0); }
+  10%  { clip-path: inset(20% 0 70% 0); transform: translateX(-3px); }
+  20%  { clip-path: none; transform: translateX(0); }
+  35%  { clip-path: inset(65% 0 10% 0); transform: translateX(4px); }
+  50%  { clip-path: none; transform: translateX(0); }
+  65%  { clip-path: inset(40% 0 35% 0); transform: translateX(-2px); }
+  80%  { clip-path: none; transform: translateX(0); }
+  90%  { clip-path: inset(5%  0 80% 0); transform: translateX(5px);  }
+  100% { clip-path: none; transform: translateX(0); }
+}
+
+/* Scanlines flicker */
+@keyframes scanline-flicker {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+
+/* =============================================
+   SCROLL INDICATOR
+   ============================================= */
+.scroll-indicator {
+  position: absolute;
+  bottom: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  transition: opacity 0.5s ease;
+  z-index: 10;
+}
+
+.scroll-indicator.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scroll-text {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  letter-spacing: 4px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: rgb(252, 0, 80);
+  text-shadow: 0 0 12px rgba(252, 0, 80, 0.9);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.mouse {
+  width: 24px;
+  height: 36px;
+  border: 2px solid rgb(252, 0, 80);
+  border-radius: 12px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  box-shadow: 0 0 10px rgba(252, 0, 80, 0.5);
+}
+
+.wheel {
+  width: 4px;
+  height: 8px;
+  background-color: rgb(0, 255, 200);
+  border-radius: 2px;
+  margin-top: 6px;
+  animation: scroll-wheel 1.5s infinite;
+  box-shadow: 0 0 8px rgba(0, 255, 200, 0.8);
+}
+
+.arrows {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: -5px;
+}
+
+.arrow {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid rgb(252, 0, 80);
+  border-bottom: 2px solid rgb(252, 0, 80);
+  transform: rotate(45deg);
+  animation: scroll-arrow 1.5s infinite;
+  margin-top: -3px;
+}
+
+.arrow:nth-child(1) { animation-delay: 0s; }
+.arrow:nth-child(2) { animation-delay: 0.15s; }
+.arrow:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes scroll-wheel {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(10px); opacity: 0; }
+}
+
+@keyframes scroll-arrow {
+  0% { opacity: 0; transform: rotate(45deg) translate(-2px, -2px); }
+  50% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(45deg) translate(2px, 2px); }
+}
+
+@keyframes pulse {
+  0%   { opacity: 0.2; }
+  50%  { opacity: 1; }
+  100% { opacity: 0.2; }
+}
