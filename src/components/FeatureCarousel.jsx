@@ -17,7 +17,7 @@ export default function FeatureCarousel() {
                     return prevIndex + 1;
                 }
             });
-        }, 5000);
+        }, 7000);
         return () => clearInterval(timer);
     }, [cards.length]);
 

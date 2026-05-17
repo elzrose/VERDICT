@@ -1,55 +1,35 @@
 import { Link } from "react-router-dom";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+
 
 export default function Community() {
-    // State to track which sidebar tab is active
     const [activeTab, setActiveTab] = useState('Home');
 
-    // State for posts to allow interactivity (like reactions)
-    const [posts, setPosts] = useState([
-        {
-            id: 1,
-            author: "CodeNinja99",
-            projectName: "TaskMaster Pro",
-            content: "This is my MVP for my new app called TaskMaster Pro. It is a task management app that helps you stay organized and on top of your tasks. It has a simple and user-friendly interface that makes it easy to use. It also has a variety of features that help you stay organized and on top of your tasks.",
-            stage: "MVP",
-            score: 8.5,
-            roastSnippet: "Verdict AI: 'A solid attempt, but your color palette is aggressive enough to wake the dead.'",
-            reactions: 142,
-            hasReacted: false,
-            comments: 34,
-            date: "2 hours ago"
-        },
-        {
-            id: 2,
-            author: "DesignGuru",
-            projectName: "Zenith UI Kit",
-            content: "This is my UI design for my new app called Zenith UI Kit. It is a UI kit that helps you create beautiful and user-friendly interfaces. It has a simple and user-friendly interface that makes it easy to use. It also has a variety of features that help you create beautiful and user-friendly interfaces.",
-            stage: "UI/UX",
-            score: 9.2,
-            roastSnippet: "Verdict AI: 'Beautifully crafted. If only your backend existed.'",
-            reactions: 89,
-            hasReacted: false,
-            comments: 12,
-            date: "5 hours ago"
-        }
-    ]);
+    const [posts, setPosts] = useState([]);
+    useEffect(() => {
+        const postsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
 
-    // Function to handle reactions
-    const toggleReaction = (postId) => {
-        setPosts(posts.map(post => {
-            if (post.id === postId) {
-                return {
-                    ...post,
-                    reactions: post.hasReacted ? post.reactions - 1 : post.reactions + 1,
-                    hasReacted: !post.hasReacted
-                };
-            }
-            return post;
-        }));
+        const unsubscribe = onSnapshot(postsQuery, (snapshot) => {
+            const livePosts = [];
+            snapshot.forEach((doc) => {
+                livePosts.push({ id: doc.id, ...doc.data() });
+            });
+            setPosts(livePosts);
+        });
+        return () => unsubscribe();
+    }, []);
+
+    const toggleReaction = async (post) => {
+        const postRef = doc(db, 'posts', post.id);
+
+        await updateDoc(postRef, {
+            reactions: post.hasReacted ? post.reactions - 1 : post.reactions + 1,
+            hasReacted: !post.hasReacted
+        });
     };
 
-    // Mock User Profile Data
     const mockUserProfile = {
         username: "CodeNinja99",
         averageScore: 8.7,
@@ -60,9 +40,7 @@ export default function Community() {
     return (
         <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0a0b10', color: 'white' }}>
 
-            {/* ======================================= */}
-            {/* 1. FIXED LEFT SIDEBAR                     */}
-            {/* ======================================= */}
+
             <aside style={{
                 width: '250px',
                 borderRight: '1px solid #333',
@@ -74,14 +52,14 @@ export default function Community() {
                 top: 0,
                 height: '100vh'
             }}>
-                {/* Back to Home Link */}
+
                 <Link to="/home" style={{ color: '#00ffc8', textDecoration: 'none', fontWeight: 'bold', marginBottom: '2rem' }}>
                     ← Back to Verdict
                 </Link>
 
                 <h2>Community</h2>
 
-                {/* Sidebar Navigation */}
+
                 {['Home', 'Trending', 'Leaderboards', 'Following', 'Vault'].map((tab) => (
                     <button
                         key={tab}
@@ -102,12 +80,10 @@ export default function Community() {
                 ))}
             </aside>
 
-            {/* ======================================= */}
-            {/* 2. MAIN CENTER AREA                       */}
-            {/* ======================================= */}
+
             <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
 
-                {/* TOP BAR (Search, Alerts, Profile) */}
+
                 <header style={{
                     display: 'flex',
                     justifyContent: 'space-between',

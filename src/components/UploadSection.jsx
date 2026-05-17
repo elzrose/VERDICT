@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 
 const mockAIResponse = [
     {
@@ -85,6 +87,35 @@ export default function UploadSection() {
         }
         setIsSubmitted(true);
     };
+
+    // Handle publishing to the live Community feed
+    const handlePublishToCommunity = async () => {
+        if (!auth.currentUser) {
+            alert("You must be logged in to publish to the community!");
+            return;
+        }
+
+        try {
+            await addDoc(collection(db, 'posts'), {
+                author: auth.currentUser.displayName || auth.currentUser.email,
+                projectName: file.name,
+                content: "I just uploaded this project for an AI roast. Here is the verdict!",
+                stage: stage,
+                score: Math.floor(Math.random() * 5) + 5, // Random score between 5 and 9 for now!
+                roastSnippet: "Verdict AI: 'A solid attempt, but your color palette is aggressive enough to wake the dead.'",
+                reactions: 0,
+                hasReacted: false,
+                comments: 0,
+                date: new Date().toLocaleDateString(),
+                createdAt: serverTimestamp() // This ensures the Community Feed sorts it by newest first
+            });
+            alert("Successfully published to the Community Feed!");
+        } catch (error) {
+            console.error("Error publishing:", error);
+            alert("Failed to publish.");
+        }
+    };
+
     return (
         <div style={{ padding: '4rem 2rem', borderTop: '1px solid gray', marginTop: '2rem' }}>
 
@@ -164,6 +195,14 @@ export default function UploadSection() {
                             Next →
                         </button>
                     </div>
+
+                    {/* Publish to Community Button */}
+                    <button
+                        onClick={handlePublishToCommunity}
+                        style={{ display: 'block', marginTop: '3rem', width: '100%', padding: '1rem', backgroundColor: '#00ffc8', color: 'black', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '1.2rem' }}
+                    >
+                        Publish Roast to Community 🌎
+                    </button>
 
                     {/* Start Over Button */}
                     <button

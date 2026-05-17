@@ -1,5 +1,6 @@
 
 import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
 import {
   getAuth,
   signInWithPopup,
@@ -54,3 +55,4 @@ export const loginWithEmail = async (email, password) => {
   }
 };
 export default app;
+export const db = getFirestore(app);
