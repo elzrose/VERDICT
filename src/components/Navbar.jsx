@@ -1,10 +1,16 @@
 import { Link } from "react-router-dom";
+import { loginWithGoogle } from '../firebase';
+import { useState } from 'react';
+import AuthModal from './AuthModal';
 
 export default function Navbar() {
+    const [showAuthModal, setShowAuthModal] = useState(false);
+
     return (
-        <nav style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
+        <>
+        <nav style={{
+            display: 'flex',
+            justifyContent: 'space-between',
             padding: '1rem 2rem',
             position: 'fixed',
             top: 0,
@@ -39,9 +45,14 @@ export default function Navbar() {
                     History
                 </span>
                 <a href="/community">Community</a>
-                <button>Sign Up</button>
+                <button onClick={() => setShowAuthModal(true)} style={{ cursor: 'pointer', padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: '#00ffc8', color: 'black', fontWeight: 'bold' }}>
+                    Sign Up / Log In
+                </button>
             </div>
-
         </nav>
+
+        {/* Render the modal if state is true */}
+        {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+        </>
     );
-} 
+}

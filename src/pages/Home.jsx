@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 
 
 
-export default function Home() {
+export default function Home({ user }) {
   return (
     <div className="home-page" style={{ minHeight: '100vh' }}>
 
@@ -24,7 +24,7 @@ export default function Home() {
         <UploadSection />
       </div>
       <div id="history">
-        <HistorySection />
+        <HistorySection user={user} />
       </div>
 
       <section style={{
@@ -43,7 +43,7 @@ export default function Home() {
             fontSize: '1.2rem',
             fontWeight: 'bold',
             cursor: 'pointer',
-            backgroundColor: '#ff005dff',
+            backgroundColor: '#c1004aff',
             color: 'black',
             border: 'none',
             borderRadius: '50px'

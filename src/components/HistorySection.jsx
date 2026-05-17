@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import AuthModal from './AuthModal';
 
 // Mock Database of Past Uploads
 const mockHistoryData = [
@@ -18,16 +19,11 @@ const mockHistoryData = [
     }
 ];
 
-export default function HistorySection() {
-    // --- MOCK AUTHENTICATION STATE ---
-    // Change this to 'true' later to see the logged-in view!
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-    // Track which project the user clicked on
+export default function HistorySection({ user }) {
+    const isLoggedIn = !!user;
     const [selectedProject, setSelectedProject] = useState(null);
-
-    // Track if they clicked the "Upload Version 2" button
     const [isUploadingV2, setIsUploadingV2] = useState(false);
+    const [showAuthModal, setShowAuthModal] = useState(false);
 
     return (
         <section style={{ padding: '4rem 2rem', borderTop: '1px solid gray', position: 'relative' }}>
@@ -41,11 +37,14 @@ export default function HistorySection() {
                     zIndex: 10, backgroundColor: 'rgba(0,0,0,0.5)'
                 }}>
                     <h2 style={{ textShadow: '0 0 10px red' }}>Sign Up to save and view your progress!</h2>
-                    <button style={{ padding: '1rem 2rem', fontSize: '1.2rem', cursor: 'pointer', backgroundColor: 'red', color: 'white', border: 'none', borderRadius: '8px' }}>
+                    <button onClick={() => setShowAuthModal(true)} style={{ padding: '1rem 2rem', fontSize: '1.2rem', cursor: 'pointer', backgroundColor: 'red', color: 'white', border: 'none', borderRadius: '8px' }}>
                         Create an Account
                     </button>
                 </div>
             )}
+
+            {/* Render the modal if state is true */}
+            {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
 
             {/* --- HISTORY GRID (Blurred if logged out) --- */}
             <div style={{
