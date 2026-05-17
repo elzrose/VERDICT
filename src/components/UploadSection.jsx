@@ -47,6 +47,17 @@ const mockAIResponse = [
                 <p><strong>Suggestion:</strong> Add a community feature so users can roast each other's apps too.</p>
             </div>
         )
+    },
+    {
+        id: 'roastcard',
+        category: 'RoastCard',
+        title: 'The Roast Card',
+        tagline: 'Time to get roasted!',
+        content: (
+            <div>
+                <p>skill issues, git gud</p>
+            </div>
+        )
     }
 ];
 
