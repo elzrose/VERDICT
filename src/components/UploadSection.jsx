@@ -1,94 +1,97 @@
 import { useState } from 'react';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebase';
+import { GoogleGenAI } from '@google/genai';
 
-const mockAIResponse = [
-    {
-        id: 'overview',
-        category: 'Overview & Scores',
-        title: 'Project: "The Next Big Thing" 🚀',
-        tagline: '"A brilliant idea wrapped in slightly confusing execution." - Verdict AI',
-        content: (
-            <div>
-                <p><strong>UI/UX Design:</strong> 6/10 - Needs more padding and modern fonts.</p>
-                <p><strong>Frontend:</strong> 8/10 - Solid React structure, but animations are sluggish.</p>
-                <p><strong>Backend:</strong> 5/10 - Your database queries might bottleneck at scale.</p>
-                <p><strong>Creativity:</strong> 9/10 - Unique concept that stands out!</p>
-            </div>
-        )
-    },
-    {
-        id: 'feedback',
-        category: 'Brutal Feedback',
-        title: 'What is Wrong & What is Good',
-        tagline: 'Time for the roast...',
-        content: (
-            <div>
-                <h4 style={{ color: 'red' }}>The Bad:</h4>
-                <ul>
-                    <li>Users will get lost on your navigation bar. Too many links!</li>
-                    <li>Dark mode contrast is too low; it hurts my AI eyes.</li>
-                </ul>
-                <h4 style={{ color: 'green' }}>The Good:</h4>
-                <ul>
-                    <li>The core feature (the file uploader) works flawlessly.</li>
-                    <li>Great use of modern Javascript methods.</li>
-                </ul>
-            </div>
-        )
-    },
-    {
-        id: 'competitors',
-        category: 'Market & Competitors',
-        title: 'How to Stand Out',
-        tagline: 'You are not alone in this market.',
-        content: (
-            <div>
-                <p><strong>Competitors:</strong> App X, Service Y, Tool Z.</p>
-                <p><strong>How to Beat Them:</strong> They charge too much. Make yours freemium and focus entirely on mobile users first.</p>
-                <p><strong>Suggestion:</strong> Add a community feature so users can roast each other's apps too.</p>
-            </div>
-        )
-    },
-    {
-        id: 'roastcard',
-        category: 'RoastCard',
-        title: 'The Roast Card',
-        tagline: 'Time to get roasted!',
-        content: (
-            <div>
-                <p>skill issues, git gud</p>
-            </div>
-        )
-    }
-];
-
+// Helper to convert File to base64
+const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64 = reader.result.split(',')[1];
+            resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
 
 export default function UploadSection() {
-    // State to hold the uploaded file and the selected project stage
     const [file, setFile] = useState(null);
     const [stage, setStage] = useState('idea');
+
+    // UI State
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [currentCardIndex, setCurrentCardIndex] = useState(0);
 
-    // Handle file selection
+    // AI Data State
+    const [aiResponse, setAiResponse] = useState(null);
+
     const handleFileChange = (e) => {
         if (e.target.files.length > 0) {
             setFile(e.target.files[0]);
         }
     };
 
-    // Handle form submission
-    const handleSubmit = (e) => {
-        e.preventDefault(); // Prevents the page from refreshing
+    const handleSubmit = async (e) => {
+        e.preventDefault();
         if (!file) {
             alert("Please select a file first!");
             return;
         }
-        setIsSubmitted(true);
+
+        setIsAnalyzing(true);
+
+        try {
+            // Initialize Gemini SDK
+            const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+
+            // Prepare the image
+            const base64Data = await fileToBase64(file);
+
+            // The brutal prompt
+            const prompt = `You are a brutal, savage tech critic called 'Verdict AI'. The user has uploaded a file of their software project at the '${stage}' stage.
+Analyze it and generate a harsh but constructive roast. 
+You MUST respond with ONLY a valid JSON array containing exactly 4 objects. Do not wrap it in markdown code blocks.
+The 4 objects must have the following 'id's: 'overview', 'feedback', 'competitors', 'roastcard'.
+Each object must have these keys: 'id', 'category', 'title', 'tagline', 'contentHTML'.
+'contentHTML' must be formatted as raw HTML (e.g. <p>, <strong>, <ul>, <li>) that will be injected directly into a React dashboard.
+The 'overview' object must ALSO contain a numerical 'score' key out of 10.
+
+Example array structure:
+[
+  { "id": "overview", "category": "Overview & Scores", "title": "Project: [Name]", "tagline": "[Savage quote]", "contentHTML": "<p><strong>Design:</strong> 4/10 - My eyes bleed.</p>", "score": 4 },
+  { "id": "feedback", "category": "Brutal Feedback", "title": "What is Wrong", "tagline": "Time for the roast", "contentHTML": "<ul><li>Too many links</li></ul>" },
+  { "id": "competitors", "category": "Market & Competitors", "title": "How to Stand Out", "tagline": "You are not alone", "contentHTML": "<p>Competitor X will crush you.</p>" },
+  { "id": "roastcard", "category": "RoastCard", "title": "The Roast Card", "tagline": "Get roasted", "contentHTML": "<p>Skill issues.</p>" }
+]`;
+
+            // Call the AI
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: [
+                    prompt,
+                    { inlineData: { data: base64Data, mimeType: file.type } }
+                ]
+            });
+
+            // Parse the JSON
+            const jsonText = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+            const parsedResponse = JSON.parse(jsonText);
+
+            setAiResponse(parsedResponse);
+            setIsSubmitted(true);
+            setCurrentCardIndex(0);
+
+        } catch (error) {
+            console.error("AI Error:", error);
+            alert("Failed to analyze project: " + error.message);
+        } finally {
+            setIsAnalyzing(false);
+        }
     };
 
-    // Handle publishing to the live Community feed
     const handlePublishToCommunity = async () => {
         if (!auth.currentUser) {
             alert("You must be logged in to publish to the community!");
@@ -96,18 +99,22 @@ export default function UploadSection() {
         }
 
         try {
+            // Find the global score generated by Gemini
+            const overviewCard = aiResponse.find(card => card.id === 'overview');
+            const finalScore = overviewCard?.score || 5;
+
             await addDoc(collection(db, 'posts'), {
                 author: auth.currentUser.displayName || auth.currentUser.email,
                 projectName: file.name,
                 content: "I just uploaded this project for an AI roast. Here is the verdict!",
                 stage: stage,
-                score: Math.floor(Math.random() * 5) + 5, // Random score between 5 and 9 for now!
-                roastSnippet: "Verdict AI: 'A solid attempt, but your color palette is aggressive enough to wake the dead.'",
+                score: finalScore,
+                roastSnippet: `Verdict AI: '${overviewCard?.tagline}'`,
                 reactions: 0,
                 hasReacted: false,
                 comments: 0,
                 date: new Date().toLocaleDateString(),
-                createdAt: serverTimestamp() // This ensures the Community Feed sorts it by newest first
+                createdAt: serverTimestamp()
             });
             alert("Successfully published to the Community Feed!");
         } catch (error) {
@@ -122,17 +129,21 @@ export default function UploadSection() {
             <h2>Upload for AI Criticism</h2>
             <p>Select your file and tell us what stage your project is currently in.</p>
 
-            {/* If NOT submitted, show the form */}
-            {!isSubmitted ? (
+            {/* LOADING STATE OVERRIDE */}
+            {isAnalyzing && (
+                <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: '#111', borderRadius: '12px', border: '1px solid #ff005dff' }}>
+                    <h2 style={{ color: '#00ffc8' }}>🧠 The AI is Judging You...</h2>
+                    <p style={{ color: 'gray' }}>Analyzing pixels, reading code, and formulating brutal feedback. Please wait.</p>
+                </div>
+            )}
+
+            {!isSubmitted && !isAnalyzing && (
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '400px' }}>
-                    {/* ... Keep your existing Form Input Code Here ... */}
-                    {/* File Input */}
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem' }}>Project File (Image/Code/PDF):</label>
                         <input type="file" onChange={handleFileChange} />
                     </div>
 
-                    {/* Stage Selection Dropdown */}
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem' }}>Project Stage:</label>
                         <select value={stage} onChange={(e) => setStage(e.target.value)} style={{ padding: '0.5rem', width: '100%' }}>
@@ -143,18 +154,18 @@ export default function UploadSection() {
                         </select>
                     </div>
 
-                    {/* Submit Button */}
                     <button type="submit" style={{ padding: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}>
                         Submit for AI Criticism
                     </button>
                 </form>
-            ) : (
-                /* If SUBMITTED, show the AI Results Dashboard */
+            )}
+
+            {isSubmitted && !isAnalyzing && aiResponse && (
                 <div className="results-dashboard" style={{ marginTop: '2rem', border: '1px solid #ccc', padding: '1rem' }}>
 
-                    {/* Mini-Navbar for jumping to specific cards */}
+                    {/* Mini-Navbar */}
                     <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid #ccc', paddingBottom: '1rem', marginBottom: '1rem' }}>
-                        {mockAIResponse.map((card, index) => (
+                        {aiResponse.map((card, index) => (
                             <button
                                 key={card.id}
                                 onClick={() => setCurrentCardIndex(index)}
@@ -169,34 +180,28 @@ export default function UploadSection() {
                         ))}
                     </div>
 
-                    {/* The Current Active Card */}
+                    {/* Active Card */}
                     <div className="active-card" style={{ padding: '1rem', backgroundColor: '#f9f9f9', color: '#000', minHeight: '200px', borderRadius: '8px' }}>
-                        <h2>{mockAIResponse[currentCardIndex].title}</h2>
-                        <h4 style={{ fontStyle: 'italic', color: '#555' }}>{mockAIResponse[currentCardIndex].tagline}</h4>
+                        <h2>{aiResponse[currentCardIndex].title}</h2>
+                        <h4 style={{ fontStyle: 'italic', color: '#555' }}>{aiResponse[currentCardIndex].tagline}</h4>
 
-                        <div style={{ marginTop: '1rem' }}>
-                            {mockAIResponse[currentCardIndex].content}
-                        </div>
+                        {/* Render HTML Safely from Gemini */}
+                        <div
+                            style={{ marginTop: '1rem' }}
+                            dangerouslySetInnerHTML={{ __html: aiResponse[currentCardIndex].contentHTML }}
+                        />
                     </div>
 
-                    {/* Next / Prev Navigation Buttons */}
+                    {/* Navigation Buttons */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem' }}>
-                        <button
-                            disabled={currentCardIndex === 0}
-                            onClick={() => setCurrentCardIndex(currentCardIndex - 1)}
-                        >
+                        <button disabled={currentCardIndex === 0} onClick={() => setCurrentCardIndex(currentCardIndex - 1)}>
                             ← Previous
                         </button>
-
-                        <button
-                            disabled={currentCardIndex === mockAIResponse.length - 1}
-                            onClick={() => setCurrentCardIndex(currentCardIndex + 1)}
-                        >
+                        <button disabled={currentCardIndex === aiResponse.length - 1} onClick={() => setCurrentCardIndex(currentCardIndex + 1)}>
                             Next →
                         </button>
                     </div>
 
-                    {/* Publish to Community Button */}
                     <button
                         onClick={handlePublishToCommunity}
                         style={{ display: 'block', marginTop: '3rem', width: '100%', padding: '1rem', backgroundColor: '#00ffc8', color: 'black', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '1.2rem' }}
@@ -204,18 +209,14 @@ export default function UploadSection() {
                         Publish Roast to Community 🌎
                     </button>
 
-                    {/* Start Over Button */}
                     <button
                         onClick={() => setIsSubmitted(false)}
                         style={{ display: 'block', marginTop: '2rem', width: '100%', padding: '0.5rem' }}
                     >
                         Start Over (Upload Another)
                     </button>
-
                 </div>
             )}
-
-
         </div>
     );
 }
