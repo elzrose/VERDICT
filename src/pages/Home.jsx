@@ -2,16 +2,31 @@ import FeatureCarousel from "../components/FeatureCarousel";
 import Navbar from "../components/Navbar";
 import UploadSection from '../components/UploadSection';
 import HistorySection from '../components/HistorySection';
-import { Link } from 'react-router-dom';
+import AuthModal from '../components/AuthModal';
+import { Link, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 
 
 
 export default function Home({ user }) {
+  const location = useLocation();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // If redirected here from a protected route, auto-open the login modal
+  useEffect(() => {
+    if (location.state?.openAuth) {
+      setShowAuthModal(true);
+    }
+  }, [location.state]);
+
   return (
     <div className="home-page" style={{ minHeight: '100vh' }}>
 
 
       <Navbar />
+
+      {/* Auto-opens when redirected from Community without being logged in */}
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
 
       <main id="intro" style={{ padding: '2rem', paddingTop: '6rem' }}>
 
